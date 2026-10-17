@@ -9,9 +9,15 @@ A private family tree app built with Vue 3 + Vite.
 - **Family tree** – everyone is drawn with their picture, name and date of birth, connected by
   parent/child and spouse lines. People who aren't connected to each other appear as separate trees.
 - **Profiles** – click a picture to open someone's profile: picture, birthday, short bio, photo
-  album (with a full-screen viewer), their relatives, and their own tree with them in the centre.
+  album (with a full-screen viewer showing who else is in each photo), their relatives, and their
+  own tree with them in the centre.
 - **Admin dashboard** (`Admin` in the header) – add, edit and delete people: picture, name,
   birthday, short summary, album pictures, and their parents, spouse(s) and children.
+- **Shared photos** – album photos live in one photo library (`Admin → Photos`). Upload a photo
+  once and tag everyone in it; it appears in each tagged person's album.
+- **Flexible birthdays** – the birthday is free text, so incomplete dates like `1940`,
+  `March 1952` or `about 1930` are fine. Full dates written as `YYYY-MM-DD` are shown nicely and
+  also show the person's age.
 - **Backup** – download everything as a JSON file and import it again (e.g. on another device).
 - **Sample data** – a placeholder family is loaded on first run; "Reset to sample family" in the
   admin dashboard brings it back.
@@ -40,5 +46,5 @@ npm run preview  # serve the production build
 - `src/store/people.js` – people data, relationships, persistence
 - `src/lib/layout.js` – tree layout algorithm (generations, couples, line routing)
 - `src/components/FamilyTree.vue` – pan/zoom tree renderer
-- `src/views/` – tree page, profile page, admin dashboard, person editor
+- `src/views/` – tree page, profile page, admin dashboard, person editor, photo library
 - `src/data/samples.js` – placeholder profiles

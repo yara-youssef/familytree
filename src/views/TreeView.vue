@@ -3,14 +3,13 @@ import { computed } from 'vue'
 import FamilyTree from '@/components/FamilyTree.vue'
 import { findComponents } from '@/lib/layout'
 import { people } from '@/store/people'
+import { byBirth } from '@/lib/format'
 
 // Each group of connected people becomes its own tree.
 const families = computed(() =>
   findComponents(people.value).map((members) => {
     const founders = members.filter((p) => !p.parentIds.some((id) => members.find((m) => m.id === id)))
-    const eldest = [...founders].sort((a, b) =>
-      (a.birthDate || '9999').localeCompare(b.birthDate || '9999'),
-    )[0]
+    const eldest = [...founders].sort(byBirth)[0]
     const surname = eldest.name.trim().split(/\s+/).pop()
     return {
       key: members.map((m) => m.id).sort().join(),

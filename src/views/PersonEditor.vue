@@ -4,7 +4,16 @@ import { useRouter } from 'vue-router'
 import RelationPicker from '@/components/RelationPicker.vue'
 import PersonPhoto from '@/components/PersonPhoto.vue'
 import { fileToDataUrl } from '@/lib/image'
-import { people, getPerson, childrenOf, savePerson, newId } from '@/store/people'
+import {
+  people,
+  photos,
+  getPerson,
+  childrenOf,
+  photosOf,
+  savePerson,
+  putPhotos,
+  newId,
+} from '@/store/people'
 
 const props = defineProps({ id: { type: String, default: null } })
 const router = useRouter()
@@ -15,11 +24,13 @@ const form = reactive({
   birthDate: '',
   bio: '',
   photo: '',
-  album: [],
   parentIds: [],
   spouseIds: [],
   childIds: [],
+  photoIds: [], // library photos this person is tagged in
+  newPhotos: [], // pictures uploaded here, added to the library on save
 })
+const showLibrary = ref(false)
 const notFound = ref(false)
 const busy = ref(false)
 const error = ref('')
@@ -29,7 +40,7 @@ function load() {
   if (!props.id) {
     Object.assign(form, {
       id: newId(), name: '', birthDate: '', bio: '', photo: '',
-      album: [], parentIds: [], spouseIds: [], childIds: [],
+      parentIds: [], spouseIds: [], childIds: [], photoIds: [], newPhotos: [],
     })
     return
   }
@@ -41,6 +52,8 @@ function load() {
   Object.assign(form, {
     ...JSON.parse(JSON.stringify(p)),
     childIds: childrenOf(p.id).map((c) => c.id),
+    photoIds: photosOf(p.id).map((ph) => ph.id),
+    newPhotos: [],
   })
 }
 watch(() => props.id, load, { immediate: true })
@@ -50,6 +63,12 @@ const others = computed(() => people.value.filter((p) => p.id !== form.id))
 // Someone can't be both a parent and a child of the same person.
 const parentOptions = computed(() => others.value.filter((p) => !form.childIds.includes(p.id)))
 const childOptions = computed(() => others.value.filter((p) => !form.parentIds.includes(p.id)))
+
+const photoById = computed(() => new Map(photos.value.map((ph) => [ph.id, ph])))
+const taggedPhotos = computed(() => form.photoIds.map((id) => photoById.value.get(id)).filter(Boolean))
+const libraryChoices = computed(() =>
+  [...photos.value].reverse().filter((ph) => !form.photoIds.includes(ph.id)),
+)
 
 async function onPhoto(e) {
   const file = e.target.files[0]
@@ -70,7 +89,7 @@ async function onAlbum(e) {
   e.target.value = ''
   busy.value = true
   try {
-    for (const f of files) form.album.push(await fileToDataUrl(f, 1400))
+    for (const f of files) form.newPhotos.push(await fileToDataUrl(f, 1400))
   } catch (err) {
     error.value = err.message
   } finally {
@@ -86,10 +105,12 @@ async function save() {
   }
   busy.value = true
   try {
-    const { childIds, ...person } = form
+    const { childIds, photoIds, newPhotos, ...person } = form
     person.name = person.name.trim()
+    person.birthDate = person.birthDate.trim()
     person.bio = person.bio.trim()
-    await savePerson(person, childIds)
+    await savePerson(person, childIds, photoIds)
+    await putPhotos(newPhotos.map((src) => ({ id: newId(), src, caption: '', peopleIds: [form.id] })))
     router.push({ name: 'person', params: { id: form.id } })
   } catch (err) {
     error.value = 'Could not save: ' + err.message
@@ -134,7 +155,10 @@ async function save() {
 
       <label class="field">
         <span>Birthday</span>
-        <input v-model="form.birthDate" type="date" />
+        <input v-model="form.birthDate" type="text" placeholder="e.g. 1940-03-12, March 1940, 1940, or about 1940" />
+        <small class="muted hint-inline">
+          Write as much as you know. Use YEAR-MONTH-DAY (like 1940-03-12) to also show their age.
+        </small>
       </label>
 
       <label class="field">
@@ -160,15 +184,53 @@ async function save() {
 
       <fieldset>
         <legend>Album</legend>
+        <p class="muted hint">
+          Photos are shared: a photo can be in several people's albums. Tag more people from the
+          <RouterLink to="/admin/photos">Photos</RouterLink> tab.
+        </p>
         <div class="album">
-          <div v-for="(src, i) in form.album" :key="i" class="thumb">
+          <div v-for="ph in taggedPhotos" :key="ph.id" class="thumb">
+            <img :src="ph.src" :alt="ph.caption" :title="ph.caption" />
+            <span v-if="ph.peopleIds.filter((x) => x !== form.id).length" class="badge">shared</span>
+            <button
+              type="button"
+              aria-label="Remove from this album"
+              title="Remove from this album"
+              @click="form.photoIds = form.photoIds.filter((x) => x !== ph.id)"
+            >✕</button>
+          </div>
+          <div v-for="(src, i) in form.newPhotos" :key="'new' + i" class="thumb">
             <img :src="src" alt="" />
-            <button type="button" aria-label="Remove photo" @click="form.album.splice(i, 1)">✕</button>
+            <span class="badge">new</span>
+            <button type="button" aria-label="Remove photo" @click="form.newPhotos.splice(i, 1)">✕</button>
           </div>
           <label class="thumb add">
-            <span>+ Add pictures</span>
+            <span>+ Upload pictures</span>
             <input type="file" accept="image/*" multiple hidden @change="onAlbum" />
           </label>
+          <button
+            v-if="libraryChoices.length"
+            type="button"
+            class="thumb add"
+            @click="showLibrary = !showLibrary"
+          >
+            <span>{{ showLibrary ? 'Hide library' : '+ From photo library' }}</span>
+          </button>
+        </div>
+        <div v-if="showLibrary && libraryChoices.length" class="library">
+          <p class="muted hint">Click a photo to add it to this album.</p>
+          <div class="album">
+            <button
+              v-for="ph in libraryChoices"
+              :key="ph.id"
+              type="button"
+              class="thumb pick"
+              :title="ph.caption"
+              @click="form.photoIds = [...form.photoIds, ph.id]"
+            >
+              <img :src="ph.src" :alt="ph.caption" />
+            </button>
+          </div>
         </div>
       </fieldset>
 
@@ -266,6 +328,39 @@ legend {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+  font-size: 0.9rem;
+}
+.badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.7rem;
+}
+.thumb.pick {
+  padding: 0;
+  border: none;
+  cursor: copy;
+}
+.thumb.pick:hover {
+  outline: 3px solid var(--accent);
+}
+.library {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.hint-inline {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+}
+button.thumb.add {
+  font: inherit;
   font-size: 0.9rem;
 }
 .thumb.add:hover {

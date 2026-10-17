@@ -1,3 +1,5 @@
+import { byBirth } from './format.js'
+
 // Family tree layout.
 //
 // 1. Every person gets a generation (row): parents one row above their
@@ -17,7 +19,6 @@ const V_GAP = 92
 const PAD = 30
 
 const avg = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length
-const byBirth = (a, b) => (a.birthDate || '9999').localeCompare(b.birthDate || '9999')
 
 /** Split people into groups that are connected through parent or spouse links. */
 export function findComponents(people) {

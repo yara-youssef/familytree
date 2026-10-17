@@ -4,12 +4,22 @@ import FamilyTree from '@/components/FamilyTree.vue'
 import PersonPhoto from '@/components/PersonPhoto.vue'
 import { familyAround } from '@/lib/layout'
 import { formatDate, age } from '@/lib/format'
-import { people, getPerson, parentsOf, childrenOf, spousesOf, siblingsOf } from '@/store/people'
+import {
+  people,
+  getPerson,
+  parentsOf,
+  childrenOf,
+  spousesOf,
+  siblingsOf,
+  photosOf,
+} from '@/store/people'
 
 const props = defineProps({ id: { type: String, required: true } })
 
 const person = computed(() => getPerson(props.id))
 const personalTree = computed(() => familyAround(people.value, props.id))
+const album = computed(() => photosOf(props.id))
+const personAge = computed(() => age(person.value?.birthDate))
 
 const relatives = computed(() =>
   [
@@ -22,9 +32,16 @@ const relatives = computed(() =>
 
 // Album lightbox
 const viewing = ref(null)
+const current = computed(() => (viewing.value === null ? null : album.value[viewing.value]))
+const othersInPhoto = computed(() =>
+  (current.value?.peopleIds ?? [])
+    .filter((id) => id !== props.id)
+    .map(getPerson)
+    .filter(Boolean),
+)
 watch(() => props.id, () => (viewing.value = null))
 function step(delta) {
-  const n = person.value.album.length
+  const n = album.value.length
   viewing.value = (viewing.value + delta + n) % n
 }
 function onKey(e) {
@@ -54,7 +71,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <h1>{{ person.name }}</h1>
         <p v-if="person.birthDate" class="dob">
           Born {{ formatDate(person.birthDate) }}
-          <span class="muted">· {{ age(person.birthDate) }} years old</span>
+          <span v-if="personAge !== null" class="muted">· {{ personAge }} years old</span>
         </p>
         <p v-if="person.bio" class="bio">{{ person.bio }}</p>
         <p v-else class="bio muted">No bio yet.</p>
@@ -83,15 +100,18 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
     <section class="section">
       <h2>Album</h2>
-      <div v-if="person.album.length" class="album">
+      <div v-if="album.length" class="album">
         <button
-          v-for="(src, i) in person.album"
-          :key="i"
+          v-for="(ph, i) in album"
+          :key="ph.id"
           class="thumb"
-          :aria-label="`Open photo ${i + 1}`"
+          :aria-label="ph.caption ? `Open photo: ${ph.caption}` : `Open photo ${i + 1}`"
           @click="viewing = i"
         >
-          <img :src="src" alt="" loading="lazy" />
+          <img :src="ph.src" :alt="ph.caption" loading="lazy" />
+          <span v-if="ph.peopleIds.length > 1" class="shared" title="Shared with others">
+            +{{ ph.peopleIds.length - 1 }}
+          </span>
         </button>
       </div>
       <p v-else class="muted">No pictures in the album yet.</p>
@@ -102,26 +122,42 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <FamilyTree :people="personalTree" :highlight-id="person.id" class="card" />
     </section>
 
-    <div v-if="viewing !== null" class="lightbox" @click.self="viewing = null">
+    <div v-if="current" class="lightbox" @click.self="viewing = null">
       <button class="lb-btn close" aria-label="Close" @click="viewing = null">✕</button>
       <button
-        v-if="person.album.length > 1"
+        v-if="album.length > 1"
         class="lb-btn prev"
         aria-label="Previous photo"
         @click="step(-1)"
       >
         ‹
       </button>
-      <img :src="person.album[viewing]" alt="" />
+      <figure>
+        <img :src="current.src" :alt="current.caption" />
+        <figcaption v-if="current.caption || othersInPhoto.length">
+          <strong v-if="current.caption">{{ current.caption }}</strong>
+          <span v-if="othersInPhoto.length" class="also">
+            Also in this photo:
+            <RouterLink
+              v-for="o in othersInPhoto"
+              :key="o.id"
+              :to="{ name: 'person', params: { id: o.id } }"
+              class="lb-chip"
+            >
+              {{ o.name }}
+            </RouterLink>
+          </span>
+        </figcaption>
+      </figure>
       <button
-        v-if="person.album.length > 1"
+        v-if="album.length > 1"
         class="lb-btn next"
         aria-label="Next photo"
         @click="step(1)"
       >
         ›
       </button>
-      <span class="lb-count">{{ viewing + 1 }} / {{ person.album.length }}</span>
+      <span class="lb-count">{{ viewing + 1 }} / {{ album.length }}</span>
     </div>
   </div>
 </template>
@@ -209,6 +245,7 @@ dd {
   gap: 10px;
 }
 .thumb {
+  position: relative;
   padding: 0;
   border: none;
   border-radius: 10px;
@@ -226,6 +263,16 @@ dd {
 .thumb:hover img {
   transform: scale(1.04);
 }
+.shared {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.75rem;
+}
 .missing {
   padding: 40px;
   text-align: center;
@@ -239,11 +286,46 @@ dd {
   place-items: center;
   padding: 48px 16px;
 }
+.lightbox figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+}
 .lightbox img {
   max-width: 100%;
-  max-height: calc(100vh - 96px);
+  max-height: calc(100vh - 180px);
   border-radius: 8px;
   object-fit: contain;
+}
+figcaption {
+  color: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.also {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+.lb-chip {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-decoration: none;
+}
+.lb-chip:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 .lb-btn {
   position: absolute;

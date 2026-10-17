@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import PersonPhoto from '@/components/PersonPhoto.vue'
+import AdminTabs from '@/components/AdminTabs.vue'
 import { formatDate } from '@/lib/format'
 import {
   people,
@@ -9,6 +10,7 @@ import {
   exportJson,
   importJson,
   childrenOf,
+  photosOf,
 } from '@/store/people'
 
 const query = ref('')
@@ -65,7 +67,8 @@ const summary = (p) => {
   if (p.spouseIds.length) bits.push(p.spouseIds.length > 1 ? `${p.spouseIds.length} spouses` : 'married')
   const kids = childrenOf(p.id).length
   if (kids) bits.push(`${kids} child${kids > 1 ? 'ren' : ''}`)
-  if (p.album.length) bits.push(`${p.album.length} photo${p.album.length > 1 ? 's' : ''}`)
+  const pics = photosOf(p.id).length
+  if (pics) bits.push(`${pics} photo${pics > 1 ? 's' : ''}`)
   return bits.join(' · ')
 }
 </script>
@@ -79,6 +82,8 @@ const summary = (p) => {
       </div>
       <RouterLink to="/admin/new" class="btn primary">+ Add person</RouterLink>
     </header>
+
+    <AdminTabs />
 
     <p v-if="message" class="flash" role="status">{{ message }}</p>
 
@@ -135,7 +140,7 @@ const summary = (p) => {
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 .head p {

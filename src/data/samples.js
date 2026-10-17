@@ -35,60 +35,77 @@ function scene(caption, hue) {
 </svg>`)
 }
 
-export function samplePeople() {
-  const p = (id, name, birthDate, hue, bio, opts = {}) => ({
-    id,
-    name,
-    birthDate,
-    bio,
-    photo: avatar(name, hue),
-    album: (opts.album || []).map((c, i) => scene(c, (hue + i * 50) % 360)),
-    parentIds: opts.parents || [],
-    spouseIds: opts.spouses || [],
-  })
+export function sampleFamily() {
+  const people = []
+  const photos = []
+  let photoCount = 0
+  const photo = (caption, hue, peopleIds) =>
+    photos.push({ id: `photo-${++photoCount}`, src: scene(caption, hue), caption, peopleIds })
 
-  return [
-    // The Haddad family — three generations
-    p('george', 'George Haddad', '1940-03-12', 20,
-      'The family patriarch. A carpenter for forty years who still builds birdhouses for every grandchild.',
-      { spouses: ['mary'], album: ['Wedding day, 1963', 'The old workshop', 'Summer in the village'] }),
-    p('mary', 'Mary Haddad', '1943-07-25', 340,
-      'Keeper of the family recipes and the loudest laugh at every gathering.',
-      { spouses: ['george'], album: ['Sunday lunch', 'Garden roses'] }),
-    p('elias', 'Elias Haddad', '1965-11-02', 200,
-      'Eldest son, engineer, and the unofficial family photographer.',
-      { parents: ['george', 'mary'], spouses: ['rania'], album: ['Graduation', 'Road trip 1990', 'First house'] }),
-    p('rania', 'Rania Haddad', '1968-04-18', 280,
-      'Teacher, gardener, and organizer of every family reunion.',
-      { spouses: ['elias'], album: ['Classroom', 'Beach holiday'] }),
-    p('nadia', 'Nadia Khoury', '1969-09-30', 120,
-      'Nurse and storyteller; ask her about the time the roof blew off.',
-      { parents: ['george', 'mary'], spouses: ['sami'], album: ['Hospital team', 'Hiking'] }),
-    p('sami', 'Sami Khoury', '1966-01-14', 160,
-      'Runs a small bakery downtown. Famous for his cardamom bread.',
-      { spouses: ['nadia'], album: ['The bakery opening'] }),
-    p('fadi', 'Fadi Haddad', '1972-06-05', 50,
-      'Youngest of the siblings, musician, and world traveller.',
-      { parents: ['george', 'mary'], album: ['On stage', 'Tokyo', 'Patagonia'] }),
-    p('karim', 'Karim Haddad', '1995-02-21', 230,
-      'Software developer who set up this family tree.',
-      { parents: ['elias', 'rania'], album: ['Graduation 2017'] }),
-    p('dana', 'Dana Haddad', '1998-08-09', 300,
-      'Architecture student who sketches every building she visits.',
-      { parents: ['elias', 'rania'], album: ['Sketchbook', 'Study trip'] }),
-    p('lina', 'Lina Khoury', '2000-12-01', 100,
-      'Marine biology student and a very competitive swimmer.',
-      { parents: ['nadia', 'sami'], album: ['Swim meet', 'Reef dive'] }),
+  const p = (id, name, birthDate, hue, bio, opts = {}) => {
+    people.push({
+      id,
+      name,
+      birthDate,
+      bio,
+      photo: avatar(name, hue),
+      parentIds: opts.parents || [],
+      spouseIds: opts.spouses || [],
+    })
+    ;(opts.album || []).forEach((c, i) => photo(c, (hue + i * 50) % 360, [id]))
+  }
 
-    // The Mansour family — not connected to the Haddads, so it forms its own tree
-    p('antoine', 'Antoine Mansour', '1950-05-17', 30,
-      'Retired sea captain with a story for every port.',
-      { spouses: ['leila'], album: ['The ship', 'Harbour at dawn'] }),
-    p('leila', 'Leila Mansour', '1952-10-03', 260,
-      'Painter whose watercolours hang in every family home.',
-      { spouses: ['antoine'], album: ['Studio', 'Exhibition'] }),
-    p('maya', 'Maya Mansour', '1980-03-28', 180,
-      'Doctor and marathon runner.',
-      { parents: ['antoine', 'leila'], album: ['Finish line'] }),
-  ]
+  // The Haddad family — three generations
+  p('george', 'George Haddad', '1940', 20,
+    'The family patriarch. A carpenter for forty years who still builds birdhouses for every grandchild.',
+    { spouses: ['mary'], album: ['The old workshop'] })
+  p('mary', 'Mary Haddad', 'July 1943', 340,
+    'Keeper of the family recipes and the loudest laugh at every gathering.',
+    { spouses: ['george'], album: ['Garden roses'] })
+  p('elias', 'Elias Haddad', '1965-11-02', 200,
+    'Eldest son, engineer, and the unofficial family photographer.',
+    { parents: ['george', 'mary'], spouses: ['rania'], album: ['Graduation', 'First house'] })
+  p('rania', 'Rania Haddad', '1968-04-18', 280,
+    'Teacher, gardener, and organizer of every family reunion.',
+    { spouses: ['elias'], album: ['Classroom'] })
+  p('nadia', 'Nadia Khoury', '1969-09-30', 120,
+    'Nurse and storyteller; ask her about the time the roof blew off.',
+    { parents: ['george', 'mary'], spouses: ['sami'], album: ['Hospital team', 'Hiking'] })
+  p('sami', 'Sami Khoury', '1966-01-14', 160,
+    'Runs a small bakery downtown. Famous for his cardamom bread.',
+    { spouses: ['nadia'], album: ['The bakery opening'] })
+  p('fadi', 'Fadi Haddad', '1972-06-05', 50,
+    'Youngest of the siblings, musician, and world traveller.',
+    { parents: ['george', 'mary'], album: ['On stage', 'Tokyo'] })
+  p('karim', 'Karim Haddad', '1995-02-21', 230,
+    'Software developer who set up this family tree.',
+    { parents: ['elias', 'rania'], album: ['Graduation 2017'] })
+  p('dana', 'Dana Haddad', '1998-08-09', 300,
+    'Architecture student who sketches every building she visits.',
+    { parents: ['elias', 'rania'], album: ['Sketchbook'] })
+  p('lina', 'Lina Khoury', '2000-12-01', 100,
+    'Marine biology student and a very competitive swimmer.',
+    { parents: ['nadia', 'sami'], album: ['Swim meet'] })
+
+  // The Mansour family — not connected to the Haddads, so it forms its own tree
+  p('antoine', 'Antoine Mansour', 'about 1950', 30,
+    'Retired sea captain with a story for every port.',
+    { spouses: ['leila'], album: ['The ship'] })
+  p('leila', 'Leila Mansour', '1952-10-03', 260,
+    'Painter whose watercolours hang in every family home.',
+    { spouses: ['antoine'], album: ['Exhibition'] })
+  p('maya', 'Maya Mansour', '1980-03-28', 180,
+    'Doctor and marathon runner.',
+    { parents: ['antoine', 'leila'], album: ['Finish line'] })
+
+  // Photos shared by several people
+  photo('Wedding day, 1963', 10, ['george', 'mary'])
+  photo('Summer in the village', 60, ['george', 'mary', 'elias', 'nadia', 'fadi'])
+  photo('Family reunion 2015', 210, [
+    'george', 'mary', 'elias', 'rania', 'nadia', 'sami', 'fadi', 'karim', 'dana', 'lina',
+  ])
+  photo('Cousins at the beach', 190, ['karim', 'dana', 'lina'])
+  photo('Harbour at dawn', 230, ['antoine', 'leila', 'maya'])
+
+  return { people, photos }
 }
