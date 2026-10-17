@@ -126,6 +126,7 @@ img {
 }
 
 input[type='text'],
+input[type='url'],
 input[type='date'],
 input[type='password'],
 input[type='search'],
@@ -173,4 +174,8 @@ label.field > span,
   color: var(--accent);
   font-family: var(--serif);
   font-weight: 600;
+}
+
+img.broken {
+  visibility: hidden;
 }

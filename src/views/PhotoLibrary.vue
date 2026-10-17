@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import AdminTabs from '@/components/AdminTabs.vue'
 import RelationPicker from '@/components/RelationPicker.vue'
+import ImageLinkInput from '@/components/ImageLinkInput.vue'
 import { fileToDataUrl } from '@/lib/image'
 import { people, photos, getPerson, putPhotos, deletePhoto, newId } from '@/store/people'
 
@@ -44,6 +45,22 @@ async function onUpload(e) {
   }
 }
 
+async function onLink(url) {
+  const photo = { id: newId(), src: url, caption: '', peopleIds: [] }
+  await putPhotos([photo])
+  filter.value = 'all'
+  edit(photo)
+}
+
+const isLink = (src) => /^https?:/i.test(src)
+const hostOf = (src) => {
+  try {
+    return new URL(src).hostname
+  } catch {
+    return src
+  }
+}
+
 function edit(ph) {
   editing.value = JSON.parse(JSON.stringify(ph))
 }
@@ -66,7 +83,7 @@ async function removeEditing() {
       <div>
         <h1>Admin dashboard</h1>
         <p class="muted">
-          Upload a photo once and tag everyone in it — it shows up in each of their albums.
+          Add a photo once and tag everyone in it — it shows up in each of their albums.
         </p>
       </div>
       <label class="btn primary" :class="{ disabled: busy }">
@@ -76,6 +93,15 @@ async function removeEditing() {
     </header>
 
     <AdminTabs />
+
+    <div class="add-link card">
+      <span class="field-label">Add a photo that's already online</span>
+      <p class="muted">
+        Paste the picture's link instead of uploading it. Nothing is copied — the photo stays
+        where it is online.
+      </p>
+      <ImageLinkInput button-label="Add photo" @add="onLink" />
+    </div>
 
     <div class="toolbar">
       <select v-model="filter" aria-label="Show photos of">
@@ -87,7 +113,10 @@ async function removeEditing() {
 
     <div v-if="shown.length" class="grid">
       <button v-for="ph in shown" :key="ph.id" class="tile card" @click="edit(ph)">
-        <img :src="ph.src" :alt="ph.caption" loading="lazy" />
+        <span class="tile-img">
+          <img :src="ph.src" :alt="ph.caption" loading="lazy" />
+          <span v-if="isLink(ph.src)" class="link-badge" title="Linked from the web">link</span>
+        </span>
         <span class="tile-text">
           <strong v-if="ph.caption">{{ ph.caption }}</strong>
           <span :class="ph.peopleIds.length ? 'muted' : 'warn'">
@@ -101,6 +130,9 @@ async function removeEditing() {
     <div v-if="editing" class="modal" @click.self="editing = null">
       <form class="card dialog" @submit.prevent="saveEdit">
         <img :src="editing.src" alt="" class="preview" />
+        <p v-if="isLink(editing.src)" class="muted source">
+          Linked from <a :href="editing.src" target="_blank" rel="noopener noreferrer">{{ hostOf(editing.src) }}</a>
+        </p>
         <label class="field">
           <span>Caption</span>
           <input v-model="editing.caption" type="text" placeholder="e.g. Wedding day, 1963" />
@@ -155,10 +187,39 @@ async function removeEditing() {
 .tile:hover {
   border-color: var(--accent);
 }
+.tile-img {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-2);
+}
 .tile img {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 100%;
   object-fit: cover;
+}
+.link-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.7rem;
+}
+.add-link {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.add-link p {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+.source {
+  margin: -8px 0 14px;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
 }
 .tile-text {
   padding: 8px 10px 10px;
