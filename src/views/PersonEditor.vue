@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import RelationPicker from '@/components/RelationPicker.vue'
 import PersonPhoto from '@/components/PersonPhoto.vue'
+import ImageLinkInput from '@/components/ImageLinkInput.vue'
 import { fileToDataUrl } from '@/lib/image'
 import {
   people,
@@ -28,7 +29,7 @@ const form = reactive({
   spouseIds: [],
   childIds: [],
   photoIds: [], // library photos this person is tagged in
-  newPhotos: [], // pictures uploaded here, added to the library on save
+  newPhotos: [], // pictures uploaded or linked here, added to the library on save
 })
 const showLibrary = ref(false)
 const notFound = ref(false)
@@ -69,6 +70,8 @@ const taggedPhotos = computed(() => form.photoIds.map((id) => photoById.value.ge
 const libraryChoices = computed(() =>
   [...photos.value].reverse().filter((ph) => !form.photoIds.includes(ph.id)),
 )
+
+const isLink = (src) => /^https?:/i.test(src)
 
 async function onPhoto(e) {
   const file = e.target.files[0]
@@ -145,6 +148,8 @@ async function save() {
               Remove
             </button>
           </div>
+          <span class="or muted">or use a picture that's already online:</span>
+          <ImageLinkInput button-label="Use link" @add="(url) => (form.photo = url)" />
         </div>
       </div>
 
@@ -201,7 +206,7 @@ async function save() {
           </div>
           <div v-for="(src, i) in form.newPhotos" :key="'new' + i" class="thumb">
             <img :src="src" alt="" />
-            <span class="badge">new</span>
+            <span class="badge">{{ isLink(src) ? 'new link' : 'new' }}</span>
             <button type="button" aria-label="Remove photo" @click="form.newPhotos.splice(i, 1)">✕</button>
           </div>
           <label class="thumb add">
@@ -216,6 +221,10 @@ async function save() {
           >
             <span>{{ showLibrary ? 'Hide library' : '+ From photo library' }}</span>
           </button>
+        </div>
+        <div class="album-link">
+          <span class="or muted">Or add a picture that's already online:</span>
+          <ImageLinkInput @add="(url) => form.newPhotos.push(url)" />
         </div>
         <div v-if="showLibrary && libraryChoices.length" class="library">
           <p class="muted hint">Click a photo to add it to this album.</p>
@@ -269,6 +278,18 @@ async function save() {
   align-items: center;
   gap: 20px;
   margin: 8px 0 22px;
+}
+.photo-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.or {
+  display: block;
+  margin: 10px 0 6px;
+  font-size: 0.85rem;
+}
+.album-link {
+  margin-top: 6px;
 }
 .photo-actions {
   display: flex;

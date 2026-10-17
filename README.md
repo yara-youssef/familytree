@@ -15,6 +15,11 @@ A private family tree app built with Vue 3 + Vite.
   birthday, short summary, album pictures, and their parents, spouse(s) and children.
 - **Shared photos** – album photos live in one photo library (`Admin → Photos`). Upload a photo
   once and tag everyone in it; it appears in each tagged person's album.
+- **Photos by link** – instead of uploading, paste the link of a picture that's already online
+  (for profile pictures, album photos and the photo library). Nothing is copied; the photo is
+  shown from where it lives. Google Drive and Dropbox share links are converted to direct image
+  links automatically. If a link stops working, the picture is hidden (profile pictures fall back
+  to initials).
 - **Flexible birthdays** – the birthday is free text, so incomplete dates like `1940`,
   `March 1952` or `about 1930` are fine. Full dates written as `YYYY-MM-DD` are shown nicely and
   also show the person's age.
