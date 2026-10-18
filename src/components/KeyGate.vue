@@ -1,4 +1,5 @@
 <script setup>
+import AppLogo from '@/components/AppLogo.vue'
 import { ref, onMounted } from 'vue'
 import { tryUnlock } from '@/store/gate'
 
@@ -20,12 +21,7 @@ function submit() {
 <template>
   <div class="gate">
     <form class="card gate-card" @submit.prevent="submit">
-      <svg viewBox="0 0 24 24" width="44" height="44" aria-hidden="true" class="icon">
-        <path
-          fill="currentColor"
-          d="M12 2a5 5 0 0 0-4.9 4A4.5 4.5 0 0 0 4 14.5 4.5 4.5 0 0 0 8.5 19H11v3h2v-3h2.5A4.5 4.5 0 0 0 20 14.5 4.5 4.5 0 0 0 16.9 6 5 5 0 0 0 12 2z"
-        />
-      </svg>
+      <AppLogo :size="56" class="icon" />
       <h1>Our Family Tree</h1>
       <p class="muted">Enter the secret family key to come in.</p>
       <input
