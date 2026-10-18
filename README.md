@@ -45,6 +45,13 @@ npm run build    # production build in dist/
 npm run preview  # serve the production build
 ```
 
+## Deployment
+
+The site is deployed to GitHub Pages at https://yara-youssef.github.io/familytree/ by
+`.github/workflows/deploy.yml` on every push to `main` (it can also be run by hand from the
+Actions tab). In the repository settings, **Pages → Build and deployment → Source** must be set
+to **GitHub Actions**.
+
 ## Code map
 
 - `src/store/gate.js` – family key check
